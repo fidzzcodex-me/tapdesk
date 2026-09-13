@@ -30,6 +30,7 @@
       return location.origin;
     }
   })();
+  var apiPath = apiOrigin + "/api/tap/";
 
   // ---------------------------------------------------------------------
   // State
@@ -51,8 +52,16 @@
     return "e" + Date.now().toString(36) + uidCounter;
   }
 
+  // Request/response yang menuju endpoint tapdesk sendiri tidak boleh
+  // dicatat — kalau dicatat lalu disinkron, sinkronnya bikin entri baru,
+  // entri baru itu disinkron lagi, dst. (ini penyebab log network "spam").
+  function isOwnApiCall(url) {
+    return typeof url === "string" && url.indexOf(apiPath) === 0;
+  }
+
   // ---------------------------------------------------------------------
-  // Keep references to originals so destroy() can restore them
+  // Keep references to originals so destroy() can restore them, and so
+  // tapdesk's own sync() call never goes through its own patched fetch.
   // ---------------------------------------------------------------------
   var originalFetch = window.fetch ? window.fetch.bind(window) : null;
   var originalXHROpen = XMLHttpRequest.prototype.open;
@@ -83,7 +92,7 @@
     "transition:transform .15s ease;touch-action:none}" +
     ".td-fab:active{cursor:grabbing;transform:scale(0.94)}" +
     ".td-fab.br{right:20px}.td-fab.bl{left:20px}" +
-    ".td-panel{position:fixed;bottom:78px;width:360px;max-width:92vw;height:440px;max-height:70vh;" +
+    ".td-panel{position:fixed;bottom:78px;width:360px;max-width:92vw;height:460px;max-height:72vh;" +
     "border-radius:10px;overflow:hidden;display:flex;flex-direction:column;" +
     "box-shadow:0 10px 40px rgba(0,0,0,.35);z-index:2147483000;" +
     "opacity:0;transform:translateY(12px);pointer-events:none;" +
@@ -99,9 +108,9 @@
     ".td-iconbtn{width:22px;height:22px;border-radius:6px;border:none;background:transparent;" +
     "color:inherit;opacity:.6;cursor:pointer;display:flex;align-items:center;justify-content:center}" +
     ".td-iconbtn:hover{opacity:1;background:rgba(127,127,127,.15)}" +
-    ".td-tabs{display:flex;border-bottom:1px solid rgba(127,127,127,.2);flex-shrink:0}" +
-    ".td-tab{flex:1;padding:7px 4px;background:transparent;border:none;color:inherit;opacity:.55;" +
-    "font-size:10.5px;cursor:pointer;letter-spacing:.02em;border-bottom:2px solid transparent}" +
+    ".td-tabs{display:flex;border-bottom:1px solid rgba(127,127,127,.2);flex-shrink:0;overflow-x:auto}" +
+    ".td-tab{flex:1;min-width:56px;padding:7px 3px;background:transparent;border:none;color:inherit;opacity:.55;" +
+    "font-size:10px;cursor:pointer;letter-spacing:.01em;border-bottom:2px solid transparent;white-space:nowrap}" +
     ".td-tab.active{opacity:1;border-bottom-color:#2F6FED}" +
     ".td-body{flex:1;overflow-y:auto;font-size:11px}" +
     ".td-row{display:flex;gap:8px;padding:6px 10px;border-bottom:1px solid rgba(127,127,127,.12);cursor:pointer}" +
@@ -112,21 +121,32 @@
     ".td-row .d{width:44px;text-align:right;opacity:.55;flex-shrink:0}" +
     ".td-s2{color:#3fb950}.td-s4{color:#e3b341}.td-s5{color:#f85149}.td-s0{color:#f85149}" +
     ".td-empty{padding:20px 14px;opacity:.5;font-size:11px;line-height:1.5}" +
-    ".td-detail{padding:10px;border-top:1px solid rgba(127,127,127,.2)}" +
-    ".td-detail h4{margin:8px 0 3px;font-size:10px;opacity:.55;font-weight:600}" +
-    ".td-detail pre{white-space:pre-wrap;word-break:break-all;margin:0;font-size:10.5px;line-height:1.5}" +
+    ".td-dhead{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid rgba(127,127,127,.2);position:sticky;top:0;background:inherit}" +
+    ".td-dhead .back{cursor:pointer;opacity:.6;flex-shrink:0}" +
+    ".td-dhead .back:hover{opacity:1}" +
+    ".td-dhead .pill{padding:2px 6px;border-radius:5px;background:rgba(127,127,127,.15);font-size:10px;flex-shrink:0}" +
+    ".td-dhead .url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.75}" +
+    ".td-copybtn{flex-shrink:0;background:rgba(47,111,237,.15);color:#2F6FED;border:none;" +
+    "padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer}" +
+    ".td-copybtn:hover{background:rgba(47,111,237,.28)}" +
+    ".td-detail{padding:10px}" +
+    ".td-detail h4{margin:10px 0 3px;font-size:10px;opacity:.55;font-weight:600;text-transform:uppercase;letter-spacing:.04em}" +
+    ".td-detail h4:first-child{margin-top:0}" +
+    ".td-detail pre{white-space:pre-wrap;word-break:break-all;margin:0;padding:6px 8px;" +
+    "background:rgba(127,127,127,.08);border-radius:6px;font-size:10.5px;line-height:1.5}" +
     ".td-consoleline{padding:5px 10px;border-bottom:1px solid rgba(127,127,127,.12);white-space:pre-wrap;word-break:break-word}" +
     ".td-c-log{opacity:.85}.td-c-warn{color:#e3b341}.td-c-error{color:#f85149}" +
-    ".td-info{padding:12px}" +
-    ".td-info .r{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(127,127,127,.12);gap:10px}" +
-    ".td-info .k{opacity:.55}" +
-    ".td-info .v{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}" +
-    ".td-setting{padding:12px;display:flex;flex-direction:column;gap:12px}" +
-    ".td-setrow{display:flex;align-items:center;justify-content:space-between}" +
+    ".td-section{padding:10px 12px}" +
+    ".td-section h4{margin:12px 0 4px;font-size:10px;opacity:.55;font-weight:600;text-transform:uppercase;letter-spacing:.04em}" +
+    ".td-section h4:first-child{margin-top:0}" +
+    ".td-kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(127,127,127,.12);gap:10px}" +
+    ".td-kv .k{opacity:.55;flex-shrink:0}" +
+    ".td-kv .v{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}" +
+    ".td-setrow{display:flex;align-items:center;justify-content:space-between;padding:7px 0}" +
     ".td-btn{background:rgba(127,127,127,.15);border:none;color:inherit;padding:6px 10px;" +
     "border-radius:6px;font-size:11px;cursor:pointer}" +
     ".td-btn:hover{background:rgba(127,127,127,.28)}" +
-    ".td-btn.danger{background:rgba(248,81,73,.15);color:#f85149}" +
+    ".td-btn.danger{background:rgba(248,81,73,.15);color:#f85149;width:100%;margin-top:4px}" +
     ".td-btn.danger:hover{background:rgba(248,81,73,.28)}" +
     ".td-switch{width:32px;height:18px;border-radius:999px;background:rgba(127,127,127,.35);" +
     "border:none;position:relative;cursor:pointer;flex-shrink:0}" +
@@ -161,8 +181,9 @@
     '<div class="td-tabs">' +
     '<button class="td-tab" data-tab="network">Network</button>' +
     '<button class="td-tab" data-tab="console">Console</button>' +
-    '<button class="td-tab" data-tab="info">Info</button>' +
-    '<button class="td-tab" data-tab="setting">Setting</button>' +
+    '<button class="td-tab" data-tab="source">Source</button>' +
+    '<button class="td-tab" data-tab="resource">Resource</button>' +
+    '<button class="td-tab" data-tab="system">System</button>' +
     "</div>" +
     '<div class="td-body"></div>';
   root.appendChild(panel);
@@ -244,12 +265,20 @@
   // Recording
   // ---------------------------------------------------------------------
   function pushNetwork(entry) {
+    if (isOwnApiCall(entry.url)) return;
     entry.id = uid();
     entry.timestamp = Date.now();
     state.network.push(entry);
     if (state.network.length > MAX_ITEMS) state.network.shift();
     if (state.open && state.activeTab === "network") render();
-    sync({ type: "network", method: entry.method, url: entry.url, status: entry.status, duration: entry.duration, timestamp: entry.timestamp });
+    sync({
+      type: "network",
+      method: entry.method,
+      url: entry.url,
+      status: entry.status,
+      duration: entry.duration,
+      timestamp: entry.timestamp,
+    });
   }
 
   function pushConsole(level, args) {
@@ -270,10 +299,14 @@
     sync({ type: "console", level: level, message: message, timestamp: entry.timestamp });
   }
 
+  // Sync SELALU lewat originalFetch, bukan window.fetch — kalau lewat
+  // window.fetch, panggilan ini kena tangkap oleh patch di bawah dan
+  // membuat entri network baru untuk dirinya sendiri, yang disinkron
+  // lagi, tanpa henti. Ini bug lama yang bikin tab Network kebanjiran.
   function sync(payload) {
-    if (!syncEnabled) return;
+    if (!syncEnabled || !originalFetch) return;
     try {
-      fetch(apiOrigin + "/api/tap/" + encodeURIComponent(sessionId), {
+      originalFetch(apiPath + encodeURIComponent(sessionId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -295,9 +328,13 @@
   // ---------------------------------------------------------------------
   if (originalFetch) {
     window.fetch = function (input, init) {
+      var url = typeof input === "string" ? input : input && input.url;
+
+      // Jangan catat panggilan tapdesk ke API-nya sendiri.
+      if (isOwnApiCall(url)) return originalFetch(input, init);
+
       var start = performance.now();
       var method = (init && init.method) || "GET";
-      var url = typeof input === "string" ? input : input && input.url;
       var reqBody = init && init.body ? safeStringify(init.body) : undefined;
       var reqHeaders = extractHeaders(init && init.headers);
 
@@ -352,18 +389,18 @@
   // Patch XHR
   // ---------------------------------------------------------------------
   XMLHttpRequest.prototype.open = function (method, url) {
-    this.__td = { method: method, url: url, headers: {} };
+    this.__td = { method: method, url: url, headers: {}, skip: isOwnApiCall(url) };
     return originalXHROpen.apply(this, arguments);
   };
 
   XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
-    if (this.__td) this.__td.headers[name] = value;
+    if (this.__td && !this.__td.skip) this.__td.headers[name] = value;
     return originalSetHeader.apply(this, arguments);
   };
 
   XMLHttpRequest.prototype.send = function (body) {
     var xhr = this;
-    if (xhr.__td) {
+    if (xhr.__td && !xhr.__td.skip) {
       xhr.__td.start = performance.now();
       xhr.__td.body = safeStringify(body);
       xhr.addEventListener("loadend", function () {
@@ -437,6 +474,29 @@
       .replace(/>/g, "&gt;");
   }
 
+  function copyToClipboard(text, btn) {
+    var done = function () {
+      var old = btn.textContent;
+      btn.textContent = "tersalin";
+      setTimeout(function () {
+        btn.textContent = old;
+      }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(done);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      root.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } catch (e) {}
+      root.removeChild(ta);
+      done();
+    }
+  }
+
   // ---------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------
@@ -447,8 +507,9 @@
 
     if (state.activeTab === "network") renderNetwork();
     else if (state.activeTab === "console") renderConsole();
-    else if (state.activeTab === "info") renderInfo();
-    else renderSetting();
+    else if (state.activeTab === "source") renderSource();
+    else if (state.activeTab === "resource") renderResource();
+    else renderSystem();
   }
 
   function renderNetwork() {
@@ -457,6 +518,7 @@
         return e.id === state.selectedNetworkId;
       })[0];
       if (entry) return renderNetworkDetail(entry);
+      state.selectedNetworkId = null;
     }
     if (state.network.length === 0) {
       bodyEl.innerHTML =
@@ -499,34 +561,37 @@
   }
 
   function renderNetworkDetail(e) {
+    var fullText =
+      e.method + " " + e.url + "\n" +
+      "Status: " + (e.status || "gagal") + "  Durasi: " + e.duration + "ms\n\n" +
+      "Request Headers:\n" + JSON.stringify(e.requestHeaders || {}, null, 2) + "\n\n" +
+      "Request Body:\n" + (e.requestBody || "(kosong)") + "\n\n" +
+      "Response Headers:\n" + JSON.stringify(e.responseHeaders || {}, null, 2) + "\n\n" +
+      "Response Preview:\n" + (e.responsePreview || e.error || "(tidak ada preview)");
+
     bodyEl.innerHTML =
-      '<div class="td-row" data-back="1"><span class="u">← ' +
-      esc(e.method) +
-      " " +
-      esc(e.url) +
-      "</span></div>" +
+      '<div class="td-dhead">' +
+      '<span class="back" data-back="1">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</span>" +
+      '<span class="pill ' + statusClass(e.status) + '">' + (e.status || "err") + "</span>" +
+      '<span class="url" title="' + esc(e.url) + '">' + esc(e.method) + " " + esc(e.url) + "</span>" +
+      '<button class="td-copybtn" data-copy="1">copy all</button>' +
+      "</div>" +
       '<div class="td-detail">' +
-      "<h4>Status</h4><pre>" +
-      (e.status || "gagal") +
-      " · " +
-      e.duration +
-      "ms</pre>" +
-      "<h4>Request Headers</h4><pre>" +
-      esc(JSON.stringify(e.requestHeaders || {}, null, 2)) +
-      "</pre>" +
-      "<h4>Request Body</h4><pre>" +
-      esc(e.requestBody || "(kosong)") +
-      "</pre>" +
-      "<h4>Response Headers</h4><pre>" +
-      esc(JSON.stringify(e.responseHeaders || {}, null, 2)) +
-      "</pre>" +
-      "<h4>Response Preview</h4><pre>" +
-      esc(e.responsePreview || e.error || "(tidak ada preview)") +
-      "</pre>" +
+      "<h4>Ringkasan</h4><pre>" + (e.status || "gagal") + " · " + e.duration + "ms</pre>" +
+      "<h4>Request Headers</h4><pre>" + esc(JSON.stringify(e.requestHeaders || {}, null, 2)) + "</pre>" +
+      "<h4>Request Body</h4><pre>" + esc(e.requestBody || "(kosong)") + "</pre>" +
+      "<h4>Response Headers</h4><pre>" + esc(JSON.stringify(e.responseHeaders || {}, null, 2)) + "</pre>" +
+      "<h4>Response Preview</h4><pre>" + esc(e.responsePreview || e.error || "(tidak ada preview)") + "</pre>" +
       "</div>";
+
     bodyEl.querySelector("[data-back]").addEventListener("click", function () {
       state.selectedNetworkId = null;
       render();
+    });
+    bodyEl.querySelector("[data-copy]").addEventListener("click", function (ev) {
+      copyToClipboard(fullText, ev.target);
     });
   }
 
@@ -541,54 +606,142 @@
       .reverse()
       .map(function (e) {
         return (
-          '<div class="td-consoleline td-c-' +
-          e.level +
-          '">' +
-          esc(e.message) +
-          "</div>"
+          '<div class="td-consoleline td-c-' + e.level + '">' + esc(e.message) + "</div>"
         );
       })
       .join("");
   }
 
-  function renderInfo() {
-    var rows = [
-      ["URL", location.href],
-      ["User Agent", navigator.userAgent],
-      ["Viewport", window.innerWidth + " × " + window.innerHeight],
-      ["Waktu", new Date().toLocaleString("id-ID")],
-      ["Session", sessionId],
-      ["Sync ke dashboard", syncEnabled ? "aktif" : "nonaktif"],
-    ];
+  // Source: daftar script & stylesheet yang dimuat halaman host — bukan
+  // debugger, cuma daftar apa yang terpasang.
+  function renderSource() {
+    var scripts = Array.prototype.slice.call(document.scripts).map(function (s) {
+      return s.src || "(inline script)";
+    });
+    var sheets = Array.prototype.slice.call(document.styleSheets).map(function (s) {
+      try {
+        return s.href || "(inline style)";
+      } catch (e) {
+        return "(tidak bisa dibaca — cross-origin)";
+      }
+    });
+
+    function list(items) {
+      if (items.length === 0) return '<div class="td-empty">Tidak ada.</div>';
+      return items
+        .map(function (u) {
+          return '<div class="td-row" style="cursor:default"><span class="u">' + esc(u) + "</span></div>";
+        })
+        .join("");
+    }
+
     bodyEl.innerHTML =
-      '<div class="td-info">' +
-      rows
-        .map(function (r) {
+      '<div class="td-section">' +
+      "<h4>Scripts (" + scripts.length + ")</h4></div>" +
+      list(scripts) +
+      '<div class="td-section">' +
+      "<h4>Stylesheets (" + sheets.length + ")</h4></div>" +
+      list(sheets);
+  }
+
+  // Resource: local storage, session storage, cookie — panel Resource ala
+  // devtools, dibaca langsung dari halaman host (read-only).
+  function renderResource() {
+    function readStorage(storage) {
+      var out = [];
+      try {
+        for (var i = 0; i < storage.length; i++) {
+          var k = storage.key(i);
+          out.push([k, storage.getItem(k)]);
+        }
+      } catch (e) {
+        /* storage tidak tersedia (mis. sandboxed iframe) */
+      }
+      return out;
+    }
+
+    function readCookies() {
+      if (!document.cookie) return [];
+      return document.cookie.split(";").map(function (pair) {
+        var idx = pair.indexOf("=");
+        if (idx === -1) return [pair.trim(), ""];
+        return [pair.slice(0, idx).trim(), pair.slice(idx + 1).trim()];
+      });
+    }
+
+    function kvList(items) {
+      if (items.length === 0) return '<div class="td-empty">Kosong.</div>';
+      return items
+        .map(function (pair) {
           return (
-            '<div class="r"><span class="k">' +
-            esc(r[0]) +
-            '</span><span class="v" title="' +
-            esc(r[1]) +
-            '">' +
-            esc(r[1]) +
-            "</span></div>"
+            '<div class="td-kv"><span class="k">' + esc(pair[0]) + '</span>' +
+            '<span class="v" title="' + esc(pair[1]) + '">' + esc(truncate(pair[1] || "", 60)) + "</span></div>"
           );
         })
-        .join("") +
+        .join("");
+    }
+
+    var local = readStorage(window.localStorage);
+    var session = readStorage(window.sessionStorage);
+    var cookies = readCookies();
+
+    bodyEl.innerHTML =
+      '<div class="td-section">' +
+      "<h4>Local Storage (" + local.length + ")</h4>" + kvList(local) +
+      "<h4>Session Storage (" + session.length + ")</h4>" + kvList(session) +
+      "<h4>Cookies (" + cookies.length + ")</h4>" + kvList(cookies) +
       "</div>";
   }
 
-  function renderSetting() {
+  // System: info perangkat/halaman + kontrol panel + saklar mati/hidup.
+  function renderSystem() {
+    var mem = performance.memory
+      ? Math.round(performance.memory.usedJSHeapSize / 1048576) + " MB"
+      : "-";
+    var conn = navigator.connection ? navigator.connection.effectiveType : "-";
+
+    var deviceRows = [
+      ["URL", location.href],
+      ["User Agent", navigator.userAgent],
+      ["Viewport", window.innerWidth + " × " + window.innerHeight],
+      ["Bahasa", navigator.language],
+      ["Platform", navigator.platform || "-"],
+      ["Online", navigator.onLine ? "ya" : "tidak"],
+      ["Koneksi", conn],
+      ["Memori JS", mem],
+      ["Waktu", new Date().toLocaleString("id-ID")],
+    ];
+
+    var sessionRows = [
+      ["Session", sessionId],
+      ["Sync ke dashboard", syncEnabled ? "aktif" : "nonaktif"],
+    ];
+
+    function kv(rows) {
+      return rows
+        .map(function (r) {
+          return (
+            '<div class="td-kv"><span class="k">' + esc(r[0]) + '</span>' +
+            '<span class="v" title="' + esc(r[1]) + '">' + esc(r[1]) + "</span></div>"
+          );
+        })
+        .join("");
+    }
+
     bodyEl.innerHTML =
-      '<div class="td-setting">' +
-      '<div class="td-setrow"><span>Tema panel gelap</span><button class="td-switch ' +
+      '<div class="td-section">' +
+      "<h4>Perangkat</h4>" + kv(deviceRows) +
+      "<h4>Sesi</h4>" + kv(sessionRows) +
+      "<h4>Panel</h4>" +
+      '<div class="td-setrow"><span>Tema gelap</span><button class="td-switch ' +
       (state.dark ? "on" : "") +
       '" data-act="theme"><i></i></button></div>' +
       '<div class="td-setrow"><span>Posisi tombol</span><button class="td-btn" data-act="corner">' +
       (state.corner === "br" ? "kanan → kiri" : "kiri → kanan") +
       "</button></div>" +
       '<div class="td-setrow"><span>Bersihkan log</span><button class="td-btn" data-act="clear">Clear</button></div>' +
-      '<div class="td-setrow"><span>Matikan panel</span><button class="td-btn danger" data-act="destroy">Destroy</button></div>' +
+      "<h4>Matikan</h4>" +
+      '<button class="td-btn danger" data-act="destroy">Matikan tapdesk di halaman ini</button>' +
       "</div>";
 
     bodyEl.querySelector('[data-act="theme"]').addEventListener("click", function () {
@@ -607,7 +760,11 @@
       state.console = [];
       render();
     });
-    bodyEl.querySelector('[data-act="destroy"]').addEventListener("click", destroy);
+    bodyEl.querySelector('[data-act="destroy"]').addEventListener("click", function () {
+      if (window.confirm("Matikan tapdesk di halaman ini? fetch/XHR/console dikembalikan ke aslinya.")) {
+        destroy();
+      }
+    });
   }
 
   // ---------------------------------------------------------------------
