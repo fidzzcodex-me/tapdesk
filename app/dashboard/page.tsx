@@ -102,7 +102,7 @@ export default function DashboardPage() {
   const list = previewTab === "network" ? networkEvents : consoleEvents;
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-6 py-10">
+    <main className="mx-auto min-h-screen max-w-4xl overflow-x-hidden px-6 py-10">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2 font-mono text-sm font-medium">
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue text-[11px] text-white">
@@ -120,7 +120,7 @@ export default function DashboardPage() {
       ) : (
         <div className="mt-10 grid gap-6 md:grid-cols-[260px_1fr]">
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <Reveal>
               <div className="rounded-lg border border-line p-4 dark:border-line-dark">
                 <div className="flex items-center gap-2">
@@ -195,12 +195,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Main */}
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <Reveal>
               <div className="rounded-lg border border-line p-4 dark:border-line-dark">
                 <p className="mb-2 text-sm font-medium">Snippet</p>
                 <div className="rounded-lg bg-paper-dim p-3 dark:bg-ink-dim">
-                  <code className="block overflow-x-auto whitespace-pre font-mono text-xs text-text-dim">
+                  <code className="block max-w-full overflow-x-auto whitespace-pre font-mono text-xs text-text-dim">
                     {session.snippet}
                   </code>
                 </div>
@@ -276,7 +276,7 @@ export default function DashboardPage() {
                             <span className="w-10 shrink-0 text-text-invert/40">
                               {ev.method}
                             </span>
-                            <span className="flex-1 truncate text-text-invert/70">
+                            <span className="min-w-0 flex-1 truncate text-text-invert/70">
                               {ev.url}
                             </span>
                             <span className={`shrink-0 ${statusColor(ev.status)}`}>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                             </span>
                           </>
                         ) : (
-                          <span className="truncate text-text-invert/70">
+                          <span className="min-w-0 flex-1 truncate text-text-invert/70">
                             [{ev.level}] {ev.message}
                           </span>
                         )}
