@@ -12,6 +12,7 @@ export async function GET(
   return NextResponse.json({
     sessionId: session.id,
     active: session.active,
+    createdAt: session.createdAt,
     events: session.events,
   });
 }
