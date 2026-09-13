@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Particles from "@/components/Particles";
 import Reveal from "@/components/Reveal";
 import ThemeToggle from "@/components/ThemeToggle";
+import LivePreview from "@/components/LivePreview";
 
 function greeting(hour: number) {
   if (hour >= 5 && hour < 11) return "Selamat pagi";
@@ -117,7 +118,117 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="relative z-10 mx-auto max-w-5xl px-6 pb-10 text-xs text-text-dim">
+      <section className="relative z-10 mx-auto max-w-5xl border-t border-line px-6 py-16 dark:border-line-dark md:grid md:grid-cols-[0.9fr_1.1fr] md:items-center md:gap-14">
+        <div>
+          <Reveal>
+            <p className="font-mono text-xs uppercase tracking-wide text-blue">
+              lihat sendiri
+            </p>
+          </Reveal>
+          <Reveal delay={60}>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+              Ini bukan mockup. Ini panelnya.
+            </h2>
+          </Reveal>
+          <Reveal delay={120}>
+            <p className="mt-3 max-w-sm text-sm text-text-dim">
+              Simulasi di samping meniru persis tampilan panel yang muncul di
+              halamanmu: baris request datang satu per satu, method, status,
+              durasi. Coba yang asli di halaman{" "}
+              <code className="rounded bg-paper-dim px-1 py-0.5 font-mono text-xs dark:bg-ink-dim">
+                /demo
+              </code>
+              .
+            </p>
+          </Reveal>
+        </div>
+        <Reveal delay={160} className="mt-8 flex justify-center md:mt-0">
+          <LivePreview />
+        </Reveal>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-5xl border-t border-line px-6 py-16 dark:border-line-dark">
+        <Reveal>
+          <p className="font-mono text-xs uppercase tracking-wide text-blue">
+            lima tab
+          </p>
+        </Reveal>
+        <Reveal delay={60}>
+          <h2 className="mt-3 max-w-md text-2xl font-semibold tracking-tight">
+            Semua yang kamu cek manual di F12, dikumpulkan di satu tombol.
+          </h2>
+        </Reveal>
+
+        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-5">
+          {[
+            {
+              t: "Network",
+              d: "Method, url, status, durasi. Klik satu baris untuk detail header dan body.",
+            },
+            {
+              t: "Console",
+              d: "log/warn/error apa adanya, tanpa disaring.",
+            },
+            {
+              t: "Source",
+              d: "HTML halaman saat ini, siap disalin.",
+            },
+            {
+              t: "Resource",
+              d: "Local storage, session storage, cookie.",
+            },
+            {
+              t: "System",
+              d: "UA, viewport, koneksi, dan tombol matikan panel.",
+            },
+          ].map((tab, i) => (
+            <Reveal key={tab.t} delay={i * 70}>
+              <div className="border-t-2 border-blue pt-3">
+                <h3 className="font-mono text-sm font-medium">{tab.t}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-text-dim">
+                  {tab.d}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-5xl border-t border-line px-6 py-16 dark:border-line-dark">
+        <Reveal>
+          <p className="font-mono text-xs uppercase tracking-wide text-blue">
+            dibanding buka f12
+          </p>
+        </Reveal>
+        <div className="mt-8 grid gap-8 md:grid-cols-2 md:divide-x md:divide-line md:dark:divide-line-dark">
+          <Reveal delay={60}>
+            <div className="md:pr-8">
+              <h3 className="text-sm font-medium text-text-dim">
+                Cara biasa
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-text-dim">
+                <li>Buka DevTools, cari tab Network di antara belasan tab lain.</li>
+                <li>Console dan Network di panel terpisah, harus bolak-balik.</li>
+                <li>Susah ditunjukkan ke orang lain lewat layar HP.</li>
+                <li>Tidak bisa dipasang di halaman yang lagi dibuka orang lain untuk dites bareng.</li>
+              </ul>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="md:pl-8">
+              <h3 className="text-sm font-medium text-blue">Dengan tapdesk</h3>
+              <ul className="mt-3 space-y-2 text-sm text-text-dim">
+                <li>Satu tombol bulat, satu klik, semua tab di satu tempat.</li>
+                <li>Jalan di HP juga — tidak butuh keyboard atau F12.</li>
+                <li>Satu baris script, tempel di halaman siapa pun yang kamu uji.</li>
+                <li>Opsional disinkron ke dashboard supaya bisa dipantau dari perangkat lain.</li>
+              </ul>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <footer className="relative z-10 mx-auto max-w-5xl px-6 pb-10 pt-6 text-xs text-text-dim">
         tapdesk bukan proxy device, bukan crack, bukan aktivator lisensi. Alat
         debug untuk halaman milikmu sendiri.
       </footer>
