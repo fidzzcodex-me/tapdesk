@@ -58,12 +58,25 @@ membuka halaman yang mau diuji.
   response). Request asli tetap jalan seperti biasa; panel cuma membaca
   salinannya lewat `clone()`.
 - Tab **Network** menampilkan daftar request, klik satu baris untuk lihat
-  detail header/body/response.
+  detail header/body/response — ada tombol "copy all" di kepala detail
+  untuk menyalin semuanya sekaligus.
 - Tab **Console** menampilkan log/warn/error apa adanya.
-- Tab **Info** menampilkan URL halaman, user agent, ukuran viewport, waktu.
-- Tab **Setting**: ganti tema panel, pindah posisi tombol, bersihkan log,
-  atau `Destroy` — ini mengembalikan `fetch`/`XHR`/`console` ke aslinya dan
-  membongkar semua elemen panel dari halaman.
+- Tab **Source** menampilkan daftar `<script>` dan stylesheet yang dimuat
+  halaman host.
+- Tab **Resource** menampilkan isi Local Storage, Session Storage, dan
+  Cookies halaman (read-only).
+- Tab **System** menampilkan info perangkat (URL, UA, viewport, bahasa,
+  koneksi, memori JS), status sesi, kontrol panel (tema, posisi tombol,
+  bersihkan log), dan tombol **Matikan tapdesk** — ini mengembalikan
+  `fetch`/`XHR`/`console` ke aslinya dan membongkar semua elemen panel dari
+  halaman (minta konfirmasi dulu).
+
+Catatan bug yang sudah diperbaiki: sebelumnya `sync()` memanggil `fetch`
+biasa, padahal `fetch` sudah ditimpa tapdesk sendiri — jadi tiap laporan ke
+dashboard ikut tercatat sebagai request baru, lalu dilaporkan lagi, tanpa
+henti ("network spam"). Sekarang `sync()` selalu lewat `fetch` asli, dan
+panggilan ke endpoint tapdesk sendiri (`/api/tap/...`) tidak pernah dicatat
+sebagai entri Network.
 - Kalau `data-sync="true"`, tiap event juga dikirim ke
   `POST /api/tap/:sessionId` supaya kelihatan di dashboard. Toggle "Kirim
   salinan ke dashboard" di dashboard mematikan/menghidupkan ini kapan saja
