@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::selection {
+  background: #2f6fed;
+  color: #ffffff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2f6fed transparent;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.reveal.is-in {
+  animation: rise-in 0.5s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+  }
+}
+
+@keyframes rise-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* thin numbered rule used only where content is truly sequential (the 3-step flow) */
+.step-rule {
+  border-left: 2px solid #2f6fed;
+}
+
+.dot-grid {
+  background-image: radial-gradient(#2f6fed22 1px, transparent 1px);
+  background-size: 22px 22px;
+}
