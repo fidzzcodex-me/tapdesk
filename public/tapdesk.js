@@ -612,36 +612,30 @@
       .join("");
   }
 
-  // Source: daftar script & stylesheet yang dimuat halaman host — bukan
-  // debugger, cuma daftar apa yang terpasang.
+  // Source: HTML mentah halaman host, apa adanya — bukan debugger, cuma
+  // snapshot document.documentElement.outerHTML plus tombol copy.
   function renderSource() {
-    var scripts = Array.prototype.slice.call(document.scripts).map(function (s) {
-      return s.src || "(inline script)";
-    });
-    var sheets = Array.prototype.slice.call(document.styleSheets).map(function (s) {
-      try {
-        return s.href || "(inline style)";
-      } catch (e) {
-        return "(tidak bisa dibaca — cross-origin)";
-      }
-    });
-
-    function list(items) {
-      if (items.length === 0) return '<div class="td-empty">Tidak ada.</div>';
-      return items
-        .map(function (u) {
-          return '<div class="td-row" style="cursor:default"><span class="u">' + esc(u) + "</span></div>";
-        })
-        .join("");
+    var html = "";
+    try {
+      var doctype = document.doctype ? "<!DOCTYPE " + document.doctype.name + ">\n" : "";
+      html = doctype + document.documentElement.outerHTML;
+    } catch (e) {
+      html = "(gagal membaca HTML halaman)";
     }
+    var sizeKb = (html.length / 1024).toFixed(1) + " KB";
+    var preview = truncate(html, 20000);
 
     bodyEl.innerHTML =
-      '<div class="td-section">' +
-      "<h4>Scripts (" + scripts.length + ")</h4></div>" +
-      list(scripts) +
-      '<div class="td-section">' +
-      "<h4>Stylesheets (" + sheets.length + ")</h4></div>" +
-      list(sheets);
+      '<div class="td-dhead">' +
+      '<span class="pill">' + sizeKb + "</span>" +
+      '<span class="url">document.documentElement.outerHTML</span>' +
+      '<button class="td-copybtn" data-copy="1">copy html</button>' +
+      "</div>" +
+      '<div class="td-detail"><pre>' + esc(preview) + "</pre></div>";
+
+    bodyEl.querySelector("[data-copy]").addEventListener("click", function (ev) {
+      copyToClipboard(html, ev.target);
+    });
   }
 
   // Resource: local storage, session storage, cookie — panel Resource ala
