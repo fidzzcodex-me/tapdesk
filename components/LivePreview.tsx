@@ -78,7 +78,7 @@ export default function LivePreview() {
             <span className="w-8 shrink-0 text-text-invert/40">
               {r.method}
             </span>
-            <span className="flex-1 truncate text-text-invert/70">
+            <span className="min-w-0 flex-1 truncate text-text-invert/70">
               {r.url}
             </span>
             <span className={`w-7 shrink-0 text-right ${statusColor(r.status)}`}>
