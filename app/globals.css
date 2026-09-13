@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Kunci lebar viewport — mencegah halaman jadi bisa di-scroll/di-zoom
+   horizontal di mobile gara-gara satu elemen anak (mis. baris kode
+   snippet yang panjang) memaksa lebar minimum lebih besar dari layar. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 ::selection {
   background: #2f6fed;
   color: #ffffff;
